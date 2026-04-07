@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [master, runediary-plugin]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Run weekly against latest RuneLite to catch API changes early
+    - cron: '0 9 * * 1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 11
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Upload JAR
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: runediary-plugin
+          path: build/libs/runediary-plugin-*-SNAPSHOT.jar
