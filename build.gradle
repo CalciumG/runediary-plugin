@@ -23,12 +23,13 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
 	testImplementation 'junit:junit:4.12'
+	testImplementation 'org.mockito:mockito-core:5.10.0'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
 }
 
 group = 'com.runediary'
-version = '1.0-SNAPSHOT'
+version = '1.1.0'
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
@@ -39,7 +40,17 @@ tasks.register('run', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = pluginMainClass
 
-	jvmArgs "-ea", "-Drunediary.hubUrl=http://localhost:3000"
+	jvmArgs "-ea"
+	systemProperty 'runediary.hubUrl', 'http://localhost:3000'
+
+	// Forward any -Drunediary.* properties from the gradle invocation to the plugin JVM
+	// so flags like -Drunediary.forceSeasonal=true actually reach Boolean.getBoolean().
+	System.getProperties().each { k, v ->
+		if (k.toString().startsWith('runediary.')) {
+			systemProperty k.toString(), v.toString()
+		}
+	}
+
 	args "--developer-mode", "--debug"
 }
 

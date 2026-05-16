@@ -226,7 +226,7 @@ public class RuneDiaryPlugin extends Plugin
 
 			// Capture player 3D model after a delay (model needs to load)
 			new PortraitCapture(client, config, okHttpClient, executor, clientThread,
-				playerContext.getPlayerName()).captureAfterDelay();
+				playerContext, playerContext.getPlayerName()).captureAfterDelay();
 			profileSyncService.loadCollectionLogFromCache();
 			profileSyncService.onLoginReady();
 			log.info("Player context ready: {}", playerContext.getPlayerName());
@@ -244,7 +244,9 @@ public class RuneDiaryPlugin extends Plugin
 		playerContext.setWorld(client.getWorld());
 		playerContext.setRegionId(client.getLocalPlayer().getWorldLocation().getRegionID());
 		playerContext.setAccountHash(Long.toHexString(client.getAccountHash()));
-		playerContext.setSeasonalWorld(client.getWorldType().contains(WorldType.SEASONAL));
+		// Allow tests / local dev to force-treat the current world as seasonal via JVM flag.
+		boolean forceSeasonal = Boolean.getBoolean("runediary.forceSeasonal");
+		playerContext.setSeasonalWorld(forceSeasonal || client.getWorldType().contains(WorldType.SEASONAL));
 
 		playerContext.setAccountType(detectAccountType());
 

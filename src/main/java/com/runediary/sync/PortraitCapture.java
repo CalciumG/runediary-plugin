@@ -1,6 +1,7 @@
 package com.runediary.sync;
 
 import com.runediary.RuneDiaryConfig;
+import com.runediary.model.PlayerContext;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -34,17 +35,19 @@ public class PortraitCapture
 	private final OkHttpClient httpClient;
 	private final ScheduledExecutorService executor;
 	private final ClientThread clientThread;
+	private final PlayerContext playerContext;
 	private final String playerName;
 
 	public PortraitCapture(Client client, RuneDiaryConfig config, OkHttpClient httpClient,
 						   ScheduledExecutorService executor, ClientThread clientThread,
-						   String playerName)
+						   PlayerContext playerContext, String playerName)
 	{
 		this.client = client;
 		this.config = config;
 		this.httpClient = httpClient;
 		this.executor = executor;
 		this.clientThread = clientThread;
+		this.playerContext = playerContext;
 		this.playerName = playerName;
 	}
 
@@ -280,8 +283,17 @@ public class PortraitCapture
 		dos.writeByte((value >> 24) & 0xFF);
 	}
 
-	private void uploadModel(byte[] modelBytes, String modelType)
+	// Package-private for unit tests.
+	void uploadModel(byte[] modelBytes, String modelType)
 	{
+		// Leagues / DMM / beta worlds would otherwise overwrite the main profile's
+		// appearance + equipment + pets in player_appearance (no mode column yet).
+		if (playerContext.isSeasonalWorld())
+		{
+			log.debug("Skipping portrait upload on seasonal world");
+			return;
+		}
+
 		String webhookUrl = config.webhookUrl();
 		if (webhookUrl == null || webhookUrl.isEmpty())
 		{

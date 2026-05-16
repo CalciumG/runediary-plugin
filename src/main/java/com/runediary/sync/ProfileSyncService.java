@@ -502,8 +502,18 @@ public class ProfileSyncService
 		});
 	}
 
-	private void sendSync(Map<String, Object> payload)
+	// Package-private for unit tests.
+	void sendSync(Map<String, Object> payload)
 	{
+		// Seasonal worlds (Leagues, DMM, beta) write to the same mode-untagged plugin
+		// tables as regular, so syncing here would clobber the main profile. Skip entirely
+		// until the hub schema gains a mode column.
+		if (playerContext.isSeasonalWorld())
+		{
+			log.debug("Skipping profile sync on seasonal world");
+			return;
+		}
+
 		String webhookUrl = config.webhookUrl();
 		if (webhookUrl == null || webhookUrl.isEmpty())
 		{
