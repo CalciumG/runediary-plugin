@@ -9,12 +9,16 @@ import net.runelite.api.Client;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.WidgetClosed;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 
 @Slf4j
 public class BankValueDetector
 {
+	// Bank interface group ID — fired in WidgetClosed when the bank UI is dismissed.
+	private static final int BANK_GROUP_ID = 12;
+
 	private final Client client;
 	private final ItemManager itemManager;
 	private final PlayerContext playerContext;
@@ -78,11 +82,24 @@ public class BankValueDetector
 		lastBankUpdate = System.currentTimeMillis();
 
 		log.debug("Bank value updated: {} GP ({} items)", totalValue, itemCount);
+	}
 
-		if (onBankUpdated != null)
+	@Subscribe
+	public void onWidgetClosed(WidgetClosed event)
+	{
+		// Fire the sync callback only when the bank UI is dismissed, not on every
+		// item movement inside it — otherwise every deposit/withdraw click round-trips
+		// to the hub. Container updates above keep the in-memory snapshot fresh so
+		// this callback always has the latest value when it does fire.
+		if (event.getGroupId() != BANK_GROUP_ID)
 		{
-			onBankUpdated.run();
+			return;
 		}
+		if (lastBankUpdate == 0 || onBankUpdated == null)
+		{
+			return;
+		}
+		onBankUpdated.run();
 	}
 
 	public Map<String, Object> getBankSnapshot()
